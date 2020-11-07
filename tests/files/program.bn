@@ -4,7 +4,6 @@ assert(squared[1] == 4)
 assert(squared[2] == 9)
 
 import "module_a"
-import "module_a" // double import should work
 
 assert(module_a::add(2, 2) == 4)
 
@@ -59,15 +58,15 @@ fn fun() {
 println(fun())
 
 fn make_person(name) {
-    const person = {}
-    person.name = name
-    person.hello = fn() {
-        println("hello " + person.name)
+    return {
+        name: name,
+        hello: fn() {
+            println("hello " + this.name)
+        },
+        make_hello: fn() {
+            return "hello " + this.name
+        }
     }
-    person.make_hello = fn() {
-        return "hello " + person.name
-    }
-    return person
 }
 
 const person = make_person("Krzysztof")
@@ -133,3 +132,113 @@ const big_array = array(1000)
 assert(len(big_array) == 1000)
 
 fn return_no_semicolon() { return }
+
+// operator overloading test
+fn vec2(x, y) {
+    return {
+        x: x,
+        y: y,
+        __operator_add__: vec2_add,
+        __operator_sub__: vec2_sub,
+        __operator_minus__: fn(a) { return vec2(-a.x, -a.y) },
+        __operator_mul__: fn(a, b) {
+            if (is_number(a)) {
+                return vec2(b.x * a, b.y * a)
+            } else if (is_number(b)) {
+                return vec2(a.x * b, a.y * b)
+            } else {
+                return vec2(a.x * b.x, a.y * b.y)
+            }
+        },
+    }
+}
+
+const va = vec2(1, 2)
+const vb = vec2(3, 4)
+
+var v = va + vb
+assert(v.x == 4)
+assert(v.y == 6)
+
+v = va * 2
+assert(v.x == 2)
+assert(v.y == 4)
+
+v = -va
+assert(v.x == -1)
+assert(v.y == -2)
+
+assert((1|2) == 3)
+assert((1&2) == 0)
+assert((1^3) == 2)
+assert(( 1 << 16) == 65536)
+assert((-1 << 2) == -4)
+assert(( 8 >> 1) == 4)
+assert((-8 >> 1) == -4)
+
+fn recover_test_1() {
+    recover (e) {
+        return 1
+    }
+    return 2
+}
+
+assert(recover_test_1() == 2)
+
+fn recover_test_2() {
+    recover (e) {
+        return 1
+    }
+    return crash()
+}
+
+assert(recover_test_2() == 1)
+
+fn recover_test_3() {
+    recover (e) {
+        return 1
+    }
+
+    recover (e) {
+        return 2
+    }
+
+    fn recover_inner() {
+        return crash()
+    }
+
+    return recover_inner()
+}
+
+assert(recover_test_3() == 2)
+
+fn recover_test_4() {
+    recover (e) {
+        return 2
+    }
+    
+    fn recover_test_inner() {
+        recover (e) {
+            return crash()
+        }
+
+        return crash()
+    }
+    return recover_test_inner()
+}
+
+assert(recover_test_4() == 2)
+
+var this_test = {
+    inner: {
+        name: "lorem",
+        get_name: fn() {
+            return this.name
+        }
+    },
+    get_inner_name: fn() {
+        return this.inner.get_name()
+    }
+}
+
+assert(this_test.get_inner_name() == "lorem")

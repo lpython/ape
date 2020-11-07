@@ -33,7 +33,7 @@ static void test_map_literals(void);
 static void test_index_and_dot_expressions(void);
 static void test_calling_functions_without_arguments(void);
 static void test_calling_functions_with_bindings(void);
-static void test_builtins(void);
+static void test_native_functions(void);
 static void test_functions(void);
 static void test_recursive_functions(void);
 static void test_assign(void);
@@ -56,7 +56,7 @@ void vm_test() {
     test_index_and_dot_expressions();
     test_calling_functions_without_arguments();
     test_calling_functions_with_bindings();
-    test_builtins();
+    test_native_functions();
     test_functions();
     test_recursive_functions();
     test_assign();
@@ -80,7 +80,7 @@ static object_t execute(const char *input, bool must_succeed) {
 
     compilation_result_t *comp_res = compiler_compile(comp, input);
     if (!comp_res || ptrarray_count(comp->errors) > 0) {
-        print_errors(comp->errors, input);
+        print_errors(comp->errors);
         assert(false); // can only fail on vm_run
     }
 
@@ -92,7 +92,7 @@ static object_t execute(const char *input, bool must_succeed) {
         if (!must_succeed) {
             return object_make_null();
         }
-        print_errors(vm->errors, input);
+        print_errors(vm->errors);
         assert(false);
     }
 
@@ -100,7 +100,7 @@ static object_t execute(const char *input, bool must_succeed) {
         assert(false);
     }
 
-    object_t top = vm_last_popped(vm);
+    object_t top = vm_get_last_popped(vm);
 
     return top;
 }
@@ -523,7 +523,7 @@ static void test_calling_functions_with_bindings() {
     }
 }
 
-static void test_builtins() {
+static void test_native_functions() {
     struct {
         const char *input;
         bool is_null;
@@ -1013,11 +1013,9 @@ static void test_errors() {
         int column;
     } tests[] = {
         {"fn fun(x){return x;};fun()", 0, 24},
-        {"1/0", 0, 1},
         {"fn(x){}()", 0, 7},
-        {"1+1;\n1/0", 1, 1},
+        {"1+1;\ncrash()", 1, 5},
         {"1;\n2;\nfn(x){return x[0];}(1)", 2, 14},
-        {"1+true", 0, 1},
         {"1()", 0, 1},
         {"var x = 0; for (i in range(0, 10)) { if (i == 9) { x = i[\"a\"];}}", 0, 56},
         {"var arr = [1, 2, 3];\narr[4] = 5", 1, 3},
@@ -1037,13 +1035,12 @@ static void test_errors() {
 
         compilation_result_t *comp_res = compiler_compile(comp, test.input);
         if (!comp_res || ptrarray_count(comp->errors) > 0) {
-            print_errors(comp->errors, test.input);
+            print_errors(comp->errors);
             assert(false); // can only fail on vm_run
         }
 
         vm_t *vm = vm_make(NULL, mem, ptrarray_make());
         ok = vm_run(vm, comp_res, comp->constants);
-        assert(vm->sp == 0);
 
         assert(!ok);
         assert(ptrarray_count(vm->errors) == 1);

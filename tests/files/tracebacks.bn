@@ -1,6 +1,6 @@
 fn traceback() {
     fn c() {
-        return 1/0;
+        return crash();
     }
 
     fn b() {
@@ -11,10 +11,10 @@ fn traceback() {
         return b();
     }
 
-    a();
+    return a();
 }
 
-fn traceback_builtin() {
+fn traceback_native_function() {
     fn c() {
         len(1);
     }
@@ -27,11 +27,11 @@ fn traceback_builtin() {
         b();
     }
 
-    a();
+    return a();
 }
 
 
-fn traceback_builtin_error() {
+fn traceback_native_function_error() {
     fn c() {
         return custom_error();
     }
@@ -44,5 +44,5 @@ fn traceback_builtin_error() {
         return b();
     }
 
-    a();
+    return a();
 }
